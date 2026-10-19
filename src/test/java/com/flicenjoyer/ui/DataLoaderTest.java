@@ -113,33 +113,71 @@ class DataLoaderTest {
   void tasksAreSerializedNotConcurrent() throws Exception {
     var loader = new DataLoader<Integer>();
     var order = new java.util.concurrent.CopyOnWriteArrayList<Integer>();
-    var done = new CountDownLatch(2);
+    var firstStarted = new CountDownLatch(1);
+    var secondDone = new CountDownLatch(1);
 
     loader.load(
         () -> {
+          firstStarted.countDown();
           try {
             Thread.sleep(100);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
           }
           order.add(1);
           return 1;
         },
-        val -> done.countDown(),
-        ex -> done.countDown());
+        val -> {},
+        ex -> {});
 
-    // Second load cancels first, but since executor is single-threaded,
-    // second task waits for first to finish
+    assertTrue(firstStarted.await(2, TimeUnit.SECONDS), "first task should have started");
     loader.load(
         () -> {
           order.add(2);
           return 2;
         },
-        val -> done.countDown(),
-        ex -> done.countDown());
+        val -> secondDone.countDown(),
+        ex -> secondDone.countDown());
 
-    assertTrue(done.await(3, TimeUnit.SECONDS));
-    // Task 1 should complete before task 2 starts (serialized)
-    assertEquals(1, order.getFirst());
-    assertEquals(2, order.get(1));
+    assertTrue(secondDone.await(3, TimeUnit.SECONDS));
+    assertEquals(java.util.List.of(1, 2), order);
+  }
+
+  @Test
+  void supersededLoadDoesNotDeliverAfterNewLoadStarts() throws Exception {
+    var loader = new DataLoader<String>();
+    var delivered = new java.util.concurrent.CopyOnWriteArrayList<String>();
+    var firstStarted = new CountDownLatch(1);
+    var firstMayFinish = new CountDownLatch(1);
+    var secondDone = new CountDownLatch(1);
+
+    loader.load(
+        () -> {
+          firstStarted.countDown();
+          while (true) {
+            try {
+              firstMayFinish.await();
+              break;
+            } catch (InterruptedException e) {
+              // Keep running: models a fetch that ignores interruption.
+            }
+          }
+          return "stale";
+        },
+        delivered::add,
+        ex -> delivered.add("stale-error"));
+
+    assertTrue(firstStarted.await(2, TimeUnit.SECONDS));
+    loader.load(
+        () -> "fresh",
+        val -> {
+          delivered.add(val);
+          secondDone.countDown();
+        },
+        ex -> secondDone.countDown());
+    firstMayFinish.countDown();
+
+    assertTrue(secondDone.await(3, TimeUnit.SECONDS));
+    assertEquals(java.util.List.of("fresh"), delivered);
   }
 }

@@ -25,7 +25,7 @@ public class DataLoader<T> {
             return t;
           });
 
-  private final AtomicBoolean cancelled = new AtomicBoolean(false);
+  private volatile AtomicBoolean cancelled = new AtomicBoolean(false);
   private Future<?> future;
 
   @FunctionalInterface
@@ -43,20 +43,23 @@ public class DataLoader<T> {
   public void load(
       ThrowingSupplier<T> supplier, Consumer<T> onSuccess, Consumer<Exception> onFailure) {
     cancel();
-    cancelled.set(false);
+    // Each load gets its own flag, so cancelling an earlier load stays cancelled after this one
+    // starts.
+    var token = new AtomicBoolean(false);
+    cancelled = token;
     future =
         EXECUTOR.submit(
             () -> {
               try {
                 var result = supplier.get();
-                if (!cancelled.get()) {
+                if (!token.get()) {
                   FxThread.run(() -> onSuccess.accept(result));
                 }
               } catch (Exception ex) {
                 if (ex instanceof InterruptedException) {
                   Thread.currentThread().interrupt();
                 }
-                if (!cancelled.get()) {
+                if (!token.get()) {
                   LOG.warning("[data-loader] Failed: " + ex.getMessage());
                   FxThread.run(() -> onFailure.accept(ex));
                 }
