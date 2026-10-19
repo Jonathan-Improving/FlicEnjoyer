@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="560" viewBox="0 0 860 560" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <title>FlicEnjoyer system overview</title>
+  <style>
+    .panel { fill: #f4f6fb; stroke: #8a94a6; }
+    .box { fill: #ffffff; stroke: #3d5a80; stroke-width: 1.5; }
+    .ext { fill: #fff4e6; stroke: #c26a00; stroke-width: 1.5; }
+    .local { fill: #eef7ee; stroke: #2d6a4f; stroke-width: 1.5; }
+    .t { fill: #1b1f29; }
+    .h { fill: #1b1f29; font-weight: bold; }
+    .s { fill: #4a5263; font-size: 11px; }
+    .edge { stroke: #7a8599; stroke-width: 1.6; fill: none; }
+    .lbl { fill: #7a8599; font-size: 11px; }
+    @media (prefers-color-scheme: dark) {
+      .panel { fill: #1e2330; stroke: #5b6578; }
+      .box { fill: #262c3b; stroke: #8fb3e0; }
+      .ext { fill: #3a2e1f; stroke: #f0a040; }
+      .local { fill: #1f3328; stroke: #6fc29a; }
+      .t, .h { fill: #e8ecf3; }
+      .s { fill: #b4bccb; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7a8599"/>
+    </marker>
+  </defs>
+
+  <rect class="panel" x="10" y="10" width="840" height="540" rx="12"/>
+  <text class="h" x="30" y="38">FlicEnjoyer (single JVM process)</text>
+
+  <rect class="box" x="30" y="55" width="520" height="85" rx="8"/>
+  <text class="h" x="45" y="78">ui/  JavaFX views</text>
+  <text class="s" x="45" y="98">Search · Browse · Upload · My History · Player · Reports</text>
+  <text class="s" x="45" y="114">Benchmarks · Administration · Edit Video (admin only)</text>
+  <text class="s" x="45" y="130">MainController navigation · DataLoader / BackgroundTask off the FX thread</text>
+
+  <rect class="box" x="580" y="55" width="250" height="85" rx="8"/>
+  <text class="h" x="595" y="78">CLI tools (Gradle tasks)</text>
+  <text class="s" x="595" y="98">seedData · unseedData · resetData</text>
+  <text class="s" x="595" y="114">benchmark</text>
+
+  <rect class="box" x="30" y="185" width="800" height="70" rx="8"/>
+  <text class="h" x="45" y="208">service/  cache-aside orchestration</text>
+  <text class="s" x="45" y="228">CatalogService · UploadService · WatchHistoryService · AggregationService · BenchmarkService</text>
+  <text class="s" x="45" y="244">Reads: Valkey first, DB on miss, backfill cache. Writes: DB first, then cache.</text>
+
+  <rect class="box" x="30" y="300" width="380" height="70" rx="8"/>
+  <text class="h" x="45" y="323">db/  JDBC repositories</text>
+  <text class="s" x="45" y="343">DatabaseProvider (HikariCP, 5 conns, schema.sql)</text>
+  <text class="s" x="45" y="359">CatalogRepository · WatchHistoryRepository</text>
+
+  <rect class="box" x="450" y="300" width="380" height="70" rx="8"/>
+  <text class="h" x="465" y="323">valkey/  GLIDE client + indexes</text>
+  <text class="s" x="465" y="343">ValkeyClient over GlideClient · IndexManager</text>
+  <text class="s" x="465" y="359">AppConfig · UserProfileManager · HashParser · QueryEscaper</text>
+
+  <rect class="ext" x="30" y="420" width="380" height="60" rx="8"/>
+  <text class="h" x="45" y="443">PostgreSQL 17  (source of truth)</text>
+  <text class="s" x="45" y="463">catalog · watch_history</text>
+
+  <rect class="ext" x="450" y="420" width="380" height="60" rx="8"/>
+  <text class="h" x="465" y="443">Valkey + ValkeySearch 1.2  (cache + FTS)</text>
+  <text class="s" x="465" y="463">catalog:* · watch:* hashes · idx:catalog · idx:watch</text>
+
+  <rect class="local" x="30" y="500" width="800" height="36" rx="8"/>
+  <text class="t" x="45" y="523">Local files: config.yaml (working dir) · ~/.flicenjoyer/profile.yaml · media/ · flicenjoyer.log</text>
+
+  <path class="edge" d="M290,140 L290,185" marker-end="url(#arrow)"/>
+  <path class="edge" d="M705,140 L705,185" marker-end="url(#arrow)"/>
+  <path class="edge" d="M220,255 L220,300" marker-end="url(#arrow)"/>
+  <path class="edge" d="M640,255 L640,300" marker-end="url(#arrow)"/>
+  <path class="edge" d="M220,370 L220,420" marker-end="url(#arrow)"/>
+  <text class="lbl" x="228" y="400">JDBC</text>
+  <path class="edge" d="M640,370 L640,420" marker-end="url(#arrow)"/>
+  <text class="lbl" x="648" y="400">GLIDE (single multiplexed conn)</text>
+  <path class="edge" d="M450,335 L410,335" marker-end="url(#arrow)"/>
+  <text class="lbl" x="413" y="328">sync</text>
+</svg>
